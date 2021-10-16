@@ -1,6 +1,9 @@
 <html>
     <body>
-        <h1>Hello World</h1>
+        <h1>Crappy Cropper</h1>
+        <div class="img-container">
+            <img id="image" src="img/{{ image }}" class="cropper-hidden">
+        </div>
         <script src="{{ url_for('static', filename='bundle.js') }}"></script>
     </body>
 </html>
