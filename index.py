@@ -1,8 +1,9 @@
 from pathlib import Path
 
-from flask import Flask, render_template, abort, send_file, jsonify, redirect
+from flask import Flask, request, render_template, abort, send_file, jsonify, redirect
 from flask.helpers import url_for
 
+from PIL import Image
 
 def create_app(config=None):
     app = Flask(__name__, instance_relative_config=False)
@@ -10,7 +11,7 @@ def create_app(config=None):
     if config:
         app.config.from_pyfile(config)
 
-    def _check_image_path(img_path: Path):
+    def _check_image_path(img_path: Path) -> Path:
         abs_path: Path = Path(app.config["BASE_DIR"]) / img_path
 
         if not abs_path.exists():
@@ -23,6 +24,7 @@ def create_app(config=None):
 
     def _images_dict(path: Path):
         response = {"images": [], "dirs": []}
+        print("Checking ", path.absolute())
         for f in path.iterdir():
             if f.is_dir():
                 response["dirs"].append(f.name)
@@ -34,14 +36,15 @@ def create_app(config=None):
     @app.route('/', defaults={"image_path": ""})
     @app.route('/<path:image_path>')
     def main_img(image_path):
-        abs_path = Path(app.config["BASE_DIR"]) / image_path
+        abs_path: Path = Path(app.config["BASE_DIR"]) / image_path
 
         if not abs_path.exists():
             abort(404)
 
         print(abs_path, abs_path.is_dir())
         if abs_path.is_dir():
-            image_path = _images_dict(abs_path)["images"][0]
+            image_path = (abs_path / _images_dict(abs_path)["images"][0]).relative_to(Path(app.config["BASE_DIR"]))
+            print("Is dir, redirecting to:", image_path)
             return redirect(url_for("main_img", image_path=image_path), 302)
 
         chk_img = _check_image_path(image_path).relative_to(Path(app.config["BASE_DIR"]))
@@ -63,6 +66,21 @@ def create_app(config=None):
     @app.route('/img/<path:image_path>')
     def get_image(image_path):
         return send_file(_check_image_path(image_path))
+
+    @app.route('/crop/<path:image_path>', methods=["POST"])
+    def crop_image(image_path):
+        chk_img = _check_image_path(image_path)
+        res = request.get_json()
+        left = res["x"]
+        top = res["y"]
+        right = left + res["width"]
+        bottom = top + res["height"]
+
+        img = Image.open(chk_img)
+        img.crop((left,top,right,bottom))
+        img.save(Path("/tmp/coso/") / image_path)
+
+        return "OK"
 
     return app
 
