@@ -1,4 +1,4 @@
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from flask import Flask, request, render_template, abort, send_file, jsonify, redirect
 from flask.helpers import url_for
@@ -30,6 +30,9 @@ def create_app(config=None):
                 response["dirs"].append(f.name)
             elif f.is_file() and f.suffix in app.config["ALLOWED_EXTENSIONS"]:
                 response["images"].append(f.name)
+
+        for p in response.values():
+            p.sort()
 
         return response
 
@@ -76,9 +79,15 @@ def create_app(config=None):
         right = left + res["width"]
         bottom = top + res["height"]
 
+        if "filename" in res:
+            image_path = res["filename"]
+        else:
+            image_path = PurePath(image_path).name
+
         img = Image.open(chk_img)
-        img.crop((left,top,right,bottom))
-        img.save(Path("/tmp/coso/") / image_path)
+        cropped = img.crop((left, top, right, bottom))
+        # TODO: Specify this path in config
+        cropped.save(Path("/home/davo/Pictures/Wallpapers") / PurePath(image_path))
 
         return "OK"
 

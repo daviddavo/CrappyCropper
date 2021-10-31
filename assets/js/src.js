@@ -22,6 +22,11 @@ function getImageDir() {
     return window.location.pathname
 }
 
+function getImageName() {
+    return window.location.pathname.substr(window.location.pathname.lastIndexOf('/')+1)
+}
+
+// TODO: Show it in a kind of pop-up modal or something
 function getDirInfo() {
     if (_dirinfo) {
         console.log(_dirinfo["images"])
@@ -77,6 +82,8 @@ function cropImage() {
     console.log($image)
     console.log($image.attr('src'))
     let img_path = "/crop" + getImageDir()
+    let arr = getImageName().split('.')
+    data.filename = arr[0] + "_" + getAspectSuffix(data.width / data.height) + '.' + arr.slice(1).join('.')
 
     console.log("Cropping", img_path)
     // TODO: DISPLAY OK NOTIFICATION
@@ -89,7 +96,7 @@ function cropImage() {
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if(xhr.status == 200) {
-                showNotification("Image " + img_path.replace(/^\/crop\//, "") + " cropped", "alert-success")
+                showNotification("Image " + getImageDir() + " cropped", "alert-success")
             } else {
                 showNotification("Error on request " + img_path + ", please see logs for more details", "alert-danger")
                 console.log(xhr)
@@ -134,6 +141,19 @@ function expandCrop() {
 function setAspectRatio(ratio) {
     $image.cropper('setAspectRatio', ratio)
     expandCrop()
+}
+
+function getAspectSuffix(ratio) {
+    const available = ["16x9","5x4","9x16","4x3"]
+
+    for (let a of available) {
+        let arr = a.split("x")
+        if (Math.abs(arr[0]/arr[1] - ratio) < 0.05) {
+            return a
+        }
+    }
+
+    return ""
 }
 
 const keyMaps = {
